@@ -9,7 +9,7 @@ def main():
     db = mysql.connector.connect(
         host="localhost",
         user="root",
-        password=""
+        password="Shaniliam1404"
     )
     print("Connected")
     db_cursor = db.cursor()
@@ -26,7 +26,7 @@ def main():
     db = mysql.connector.connect(
         host="localhost",
         user="root",
-        password="",
+        password="Shaniliam1404",
         database="App_Database"
     )
     print("Connected")
@@ -66,10 +66,23 @@ def main():
                             data = sock.recv(int(length)).decode()
                             print(data)
                             if "|" in data:  # insert new user into users table
+                                t = False
                                 split_data = data.split("|")
                                 user_name = split_data[0]
                                 user_email = split_data[1]
                                 user_password = split_data[2]  # later need to encrypt the password
+                                db_cursor.execute("SELECT * FROM users")
+                                users_info = db_cursor.fetchall()
+                                for t in users_info:
+                                    if user_email in t:
+                                        message = "Email already exists in system"
+                                        print(message)
+                                        length = str(len(message))
+                                        messages_to_send.append((sock, length.zfill(3) + message))
+                                        t = True
+                                        break
+                                if t:
+                                    break
                                 sql_command = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
                                 values = (user_name, user_email, user_password)
                                 db_cursor.execute(sql_command, values)
