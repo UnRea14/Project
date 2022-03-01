@@ -5,21 +5,53 @@ import select
 
 
 def main():
+    print("Connecting to database server...")
     db = mysql.connector.connect(
-        host="",  # change to real host
-        user="",  # change to real user
-        password="",  # change to real password
-        database=""  # change to real database
+        host="localhost",
+        user="root",
+        password=""
     )
+    print("Connected")
     db_cursor = db.cursor()
+    print("Checking if database exists...")
+    sql = "SHOW DATABASES LIKE 'App_Database'"
+    db_cursor.execute(sql)
+    check = db_cursor.fetchall()
+    if not check:
+        print("Database doesn't exists")
+        db_cursor.execute("CREATE DATABASE App_Database")
+        print("Database created")
+    print("Database exists")
+    print("Connecting to database...")
+    db = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="App_Database"
+    )
+    print("Connected")
+    db_cursor = db.cursor()
+    db_cursor.execute("SHOW TABLES")
+    check = db_cursor.fetchall()
+    if not check:
+        print("No tables in database")
+        print("Creating users table")
+        sql = "CREATE TABLE users (name VARCHAR(255), email VARCHAR(255), password VARCHAR(255))"
+        db_cursor.execute(sql)
+        print("Users table created")
+    elif ("users",) not in check:
+        print("Creating users table")
+        sql = "CREATE TABLE users (name VARCHAR(255), email VARCHAR(255), password VARCHAR(255))"
+        db_cursor.execute(sql)
+        print("Users table created")
     messages_to_send = []
     client_sockets = []
     server_sock = socket.socket()
     server_sock.bind(('0.0.0.0', 8820))
     server_sock.listen()
     while True:
-        rlist, wlist, elist = select.select([server_sock] + client_sockets, client_sockets, [], 0.01)
-        for sock in rlist:
+        r_list, w_list, e_list = select.select([server_sock] + client_sockets, client_sockets, [], 0.01)
+        for sock in r_list:
             if sock is server_sock:
                 connection, client_address = sock.accept()
                 client_sockets.append(connection)
@@ -36,13 +68,16 @@ def main():
                             if "|" in data:  # insert new user into users table
                                 split_data = data.split("|")
                                 user_name = split_data[0]
-                                user_email = split_data[1]  # later need to encrypt the password
-                                user_password = split_data[2]
+                                user_email = split_data[1]
+                                user_password = split_data[2]  # later need to encrypt the password
                                 sql_command = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
                                 values = (user_name, user_email, user_password)
                                 db_cursor.execute(sql_command, values)
                                 db.commit()
-                                print(f"Inserted user {user_name}")
+                                message = "Inserted user"
+                                length = str(len(message))
+                                messages_to_send.append((sock, length.zfill(3) + message))
+                                print(message + " " + user_name)
                         except ValueError:
                             print("Value Error")
                             client_sockets.remove(sock)
