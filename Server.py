@@ -9,7 +9,7 @@ def main():
     db = mysql.connector.connect(
         host="localhost",
         user="root",
-        password="Shaniliam1404"
+        password=""
     )
     print("Connected")
     db_cursor = db.cursor()
@@ -26,7 +26,7 @@ def main():
     db = mysql.connector.connect(
         host="localhost",
         user="root",
-        password="Shaniliam1404",
+        password="",
         database="App_Database"
     )
     print("Connected")
@@ -55,6 +55,7 @@ def main():
             if sock is server_sock:
                 connection, client_address = sock.accept()
                 client_sockets.append(connection)
+                print("Client connected")
             else:
                 try:
                     length = sock.recv(3).decode()

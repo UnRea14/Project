@@ -18,7 +18,6 @@ def main():
         while True:
             r_list, w_list, e_list = select.select([client_sock], [], [])
             for sock in r_list:
-                print(sock)
                 try:
                     length = sock.recv(3).decode()
                     try:
