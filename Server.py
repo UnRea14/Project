@@ -74,8 +74,8 @@ def main():
                                 user_password = split_data[2]  # later need to encrypt the password
                                 db_cursor.execute("SELECT * FROM users")
                                 users_info = db_cursor.fetchall()
-                                for t in users_info:
-                                    if user_email in t:
+                                for user in users_info:
+                                    if user_email in user:
                                         message = "Email already exists in system"
                                         print(message)
                                         length = str(len(message))
