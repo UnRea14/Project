@@ -1,49 +1,34 @@
 import socket
 import ssl
-import mysql.connector
 import select
+import db_handler
+
+
+def insert_user(user_name, user_email, user_password, sock, messages_to_send, db_handler1):
+    t = False
+    db_handler1.db_cursor.execute("SELECT * FROM users")
+    users_info = db_handler1.db_cursor.fetchall()
+    for user in users_info:
+        if user_email in user:
+            message = "Email already exists in system"
+            print(message)
+            length = str(len(message))
+            messages_to_send.append((sock, length.zfill(3) + message))
+            t = True
+            break
+    sql_command = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
+    values = (user_name, user_email, user_password)
+    db_handler1.db_cursor.execute(sql_command, values)
+    db_handler1.db_connector.commit()
+    message = "Inserted user"
+    length = str(len(message))
+    messages_to_send.append((sock, length.zfill(3) + message))
+    print(message + " " + user_name)
+    return t
 
 
 def main():
-    print("Connecting to database server...")
-    db = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password=""
-    )
-    print("Connected")
-    db_cursor = db.cursor()
-    print("Checking if database exists...")
-    sql = "SHOW DATABASES LIKE 'App_Database'"
-    db_cursor.execute(sql)
-    check = db_cursor.fetchall()
-    if not check:
-        print("Database doesn't exists")
-        db_cursor.execute("CREATE DATABASE App_Database")
-        print("Database created")
-    print("Database exists")
-    print("Connecting to database...")
-    db = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="App_Database"
-    )
-    print("Connected")
-    db_cursor = db.cursor()
-    db_cursor.execute("SHOW TABLES")
-    check = db_cursor.fetchall()
-    if not check:
-        print("No tables in database")
-        print("Creating users table")
-        sql = "CREATE TABLE users (name VARCHAR(255), email VARCHAR(255), password VARCHAR(255))"
-        db_cursor.execute(sql)
-        print("Users table created")
-    elif ("users",) not in check:
-        print("Creating users table")
-        sql = "CREATE TABLE users (name VARCHAR(255), email VARCHAR(255), password VARCHAR(255))"
-        db_cursor.execute(sql)
-        print("Users table created")
+    db_handler1 = db_handler.DbHandler()
     messages_to_send = []
     client_sockets = []
     server_sock = socket.socket()
@@ -67,31 +52,13 @@ def main():
                             data = sock.recv(int(length)).decode()
                             print(data)
                             if "|" in data:  # insert new user into users table
-                                t = False
                                 split_data = data.split("|")
                                 user_name = split_data[0]
                                 user_email = split_data[1]
                                 user_password = split_data[2]  # later need to encrypt the password
-                                db_cursor.execute("SELECT * FROM users")
-                                users_info = db_cursor.fetchall()
-                                for user in users_info:
-                                    if user_email in user:
-                                        message = "Email already exists in system"
-                                        print(message)
-                                        length = str(len(message))
-                                        messages_to_send.append((sock, length.zfill(3) + message))
-                                        t = True
-                                        break
+                                t = insert_user(user_name, user_email, user_password, sock, messages_to_send, db_handler1)
                                 if t:
                                     break
-                                sql_command = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
-                                values = (user_name, user_email, user_password)
-                                db_cursor.execute(sql_command, values)
-                                db.commit()
-                                message = "Inserted user"
-                                length = str(len(message))
-                                messages_to_send.append((sock, length.zfill(3) + message))
-                                print(message + " " + user_name)
                         except ValueError:
                             print("Value Error")
                             client_sockets.remove(sock)
